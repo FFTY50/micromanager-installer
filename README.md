@@ -31,7 +31,9 @@ Runs the full Micromanager stack:
 - Cloudflared tunnel
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/FFTY50/micromanager-installer/main/install.sh | sudo bash
+cd /tmp
+curl -fsSL https://raw.githubusercontent.com/FFTY50/micromanager-installer/main/install.sh -o install.sh
+sudo bash install.sh
 ```
 
 The script will:
