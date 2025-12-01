@@ -416,7 +416,7 @@ generate_compose_file() {
 
 services:
   micromanager:
-    image: micromanager/micromanager-app:latest
+    image: ffty50/micromanager-app:latest
     container_name: micromanager-app
     restart: unless-stopped
     volumes:
@@ -447,7 +447,7 @@ networks:
 
 services:
   micromanager:
-    image: micromanager/micromanager-app:latest
+    image: ffty50/micromanager-app:latest
     container_name: micromanager-app
     restart: unless-stopped
     networks: [nvrnet]
@@ -517,7 +517,7 @@ networks:
 
 services:
   micromanager:
-    image: micromanager/micromanager-app:latest
+    image: ffty50/micromanager-app:latest
     container_name: micromanager-app
     restart: unless-stopped
     networks: [nvrnet]
