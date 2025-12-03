@@ -41,7 +41,14 @@ The script will:
 - Install Docker
 - Create `/opt/micromanager`
 - Pull the Micromanager + Frigate + Cloudflared images
-- Run an interactive wizard to fill in `.env` (serial ports, n8n URLs, Cloudflare token, etc.)
+- Run an **interactive wizard** to configure:
+  - Device identity
+  - **Multi-POS setup** (1-4 registers with per-register camera mapping)
+  - n8n webhook URLs
+  - Frigate integration settings
+  - Cloudflare tunnel token (for remote access)
+- Auto-generate Frigate configuration based on your setup
+- Generate docker-compose.yml with proper serial port mappings
 - Start the stack with `docker compose up -d`
 
 ---
@@ -105,7 +112,22 @@ sudo docker compose pull
 sudo docker compose up -d
 ```
 
-If the installer script itself changes, just re-run the same curl command you used originally.
+To **reconfigure** with the new multi-POS setup wizard:
+
+```bash
+cd /opt/micromanager
+sudo docker compose pull
+sudo bash install.sh  # Re-runs wizard to reconfigure for multi-POS if needed
+sudo docker compose up -d
+```
+
+**Note:** The installer script is designed to be re-runnable. You can safely re-run it to:
+- Add support for additional POS registers (2, 3, or 4 total)
+- Update serial port mappings
+- Regenerate Frigate configuration
+- Reconfigure n8n webhooks or Cloudflare tunnel
+
+If you want to upgrade without reconfiguring, just pull and restart as shown above.
 
 ---
 
