@@ -30,10 +30,18 @@ Runs the full Micromanager stack:
 - Frigate NVR
 - Cloudflared tunnel
 
+**Recommended Method - Clone and Run:**
+
 ```bash
-cd /tmp
-curl -fsSL https://raw.githubusercontent.com/FFTY50/micromanager-installer/main/install.sh -o install.sh
+git clone https://github.com/FFTY50/micromanager-installer.git /tmp/micromanager-installer
+cd /tmp/micromanager-installer
 sudo bash install.sh
+```
+
+**Alternative - One-Liner (if git is not available):**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/FFTY50/micromanager-installer/main/install.sh | sudo bash
 ```
 
 The script will:
@@ -63,6 +71,13 @@ Runs only the Micromanager container with a **named pipe** `/tmp/serial_txn` wir
 No Frigate, no Cloudflare.
 
 ```bash
+git clone https://github.com/FFTY50/micromanager-installer.git /tmp/micromanager-installer
+cd /tmp/micromanager-installer
+sudo bash install.sh --test
+```
+
+Alternative:
+```bash
 curl -fsSL https://raw.githubusercontent.com/FFTY50/micromanager-installer/main/install.sh | sudo bash -s -- --test
 ```
 
@@ -81,6 +96,13 @@ to generate synthetic transactions.
 
 Runs Micromanager **plus** Frigate **plus** Cloudflared with a **placeholder** token, still using the emulator pipe.
 
+```bash
+git clone https://github.com/FFTY50/micromanager-installer.git /tmp/micromanager-installer
+cd /tmp/micromanager-installer
+sudo bash install.sh --test-full
+```
+
+Alternative:
 ```bash
 curl -fsSL https://raw.githubusercontent.com/FFTY50/micromanager-installer/main/install.sh | sudo bash -s -- --test-full
 ```
