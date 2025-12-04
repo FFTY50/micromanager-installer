@@ -973,16 +973,25 @@ start_services() {
     
     cd "$INSTALL_DIR"
     
-    # Pull images
+    # Check if services are already running and stop them gracefully
+    if docker compose ps --services 2>/dev/null | grep -q .; then
+        log_info "Stopping existing containers..."
+        docker compose down --remove-orphans 2>/dev/null || true
+        sleep 2
+    fi
+    
+    # Pull latest images
+    log_info "Pulling latest images..."
     docker compose pull
     
-    # Start services
-    docker compose up -d
+    # Start services with orphan removal
+    log_info "Starting containers..."
+    docker compose up -d --remove-orphans
     
     # Wait for services to start
     sleep 5
     
-    log_success "Services started"
+    log_success "Services started successfully"
 }
 
 # ============================================================================
