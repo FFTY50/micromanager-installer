@@ -301,6 +301,18 @@ generate_env_file() {
     log_info "Generating environment configuration..."
     
     local ENV_FILE="$INSTALL_DIR/.env"
+    local EXISTING_ID=""
+    
+    # Try to preserve existing MICROMANAGER_ID if file exists
+    if [[ -f "$ENV_FILE" ]]; then
+        EXISTING_ID=$(grep "^MICROMANAGER_ID=" "$ENV_FILE" | cut -d'=' -f2)
+        if [[ -n "$EXISTING_ID" ]]; then
+            log_info "Preserving existing MICROMANAGER_ID: $EXISTING_ID"
+        fi
+    fi
+    
+    # Use existing ID or generate a fresh one
+    local FINAL_ID=${EXISTING_ID:-$(uuidgen 2>/dev/null || cat /proc/sys/kernel/random/uuid)}
     
     if [[ $MODE == "test" ]]; then
         # Minimal test config
@@ -310,7 +322,7 @@ generate_env_file() {
 
 # Device
 DEVICE_NAME=$(hostname)
-MICROMANAGER_ID=$(uuidgen 2>/dev/null || cat /proc/sys/kernel/random/uuid)
+MICROMANAGER_ID=$FINAL_ID
 
 # Serial (using emulator pipe)
 SERIAL_PORTS=/tmp/serial_txn
@@ -335,7 +347,7 @@ EOF
 
 # Device
 DEVICE_NAME=$(hostname)
-MICROMANAGER_ID=$(uuidgen 2>/dev/null || cat /proc/sys/kernel/random/uuid)
+MICROMANAGER_ID=$FINAL_ID
 
 # Serial (using emulator pipe)
 SERIAL_PORTS=/tmp/serial_txn
@@ -370,7 +382,7 @@ EOF
 
 # Device
 DEVICE_NAME=$(hostname)
-MICROMANAGER_ID=$(uuidgen 2>/dev/null || cat /proc/sys/kernel/random/uuid)
+MICROMANAGER_ID=$FINAL_ID
 
 # Serial baud rate (applies to all ports)
 SERIAL_BAUD=9600
@@ -467,7 +479,7 @@ services:
         max-file: "3"
 
   frigate:
-    image: ghcr.io/blakeblackshear/frigate:stable
+    image: ghcr.io/blakeblackshear/frigate:0.16.2
     container_name: frigate
     privileged: true
     restart: unless-stopped
@@ -540,7 +552,7 @@ services:
         max-file: "3"
 
   frigate:
-    image: ghcr.io/blakeblackshear/frigate:stable
+    image: ghcr.io/blakeblackshear/frigate:0.16.2
     container_name: frigate
     privileged: true
     restart: unless-stopped
@@ -847,7 +859,7 @@ ${DEVICES_YAML}    volumes:
         max-file: "3"
 
   frigate:
-    image: ghcr.io/blakeblackshear/frigate:stable
+    image: ghcr.io/blakeblackshear/frigate:0.16.2
     container_name: frigate
     privileged: true
     restart: unless-stopped
