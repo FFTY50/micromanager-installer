@@ -606,7 +606,7 @@ POS_COUNT=0
 configure_multi_pos() {
     echo ""
     echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    echo -e "${CYAN}                   Multi-POS Configuration                         ${NC}"
+    echo -e "${CYAN}                     POS Configuration                             ${NC}"
     echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo ""
     
@@ -622,73 +622,108 @@ configure_multi_pos() {
         echo ""
     fi
     
-    # Ask how many POS registers
-    echo "How many POS registers will this device handle?"
-    echo "  1 = Single register"
-    echo "  2 = Two registers (e.g., front + back counter)"
-    echo "  3 = Three registers"
-    echo "  4 = Four registers (maximum)"
+    # Ask if this is a legacy multi-POS device (default: No = single-POS)
+    echo "New devices have a single POS register."
+    echo "Legacy devices may have 2-4 POS registers connected to one machine."
     echo ""
+    read -p "Is this a legacy multi-POS device? [y/N]: " IS_LEGACY
     
-    while true; do
-        read -p "Number of POS registers [1]: " POS_COUNT_INPUT
-        POS_COUNT_INPUT=${POS_COUNT_INPUT:-1}
+    if [[ "$IS_LEGACY" =~ ^[Yy] ]]; then
+        # Legacy multi-POS setup
+        echo ""
+        echo "How many POS registers will this legacy device handle?"
+        echo "  2 = Two registers (e.g., front + back counter)"
+        echo "  3 = Three registers"
+        echo "  4 = Four registers (maximum)"
+        echo ""
         
-        if [[ "$POS_COUNT_INPUT" =~ ^[1-4]$ ]]; then
-            POS_COUNT=$POS_COUNT_INPUT
-            break
-        else
-            echo -e "${RED}Please enter a number between 1 and 4${NC}"
-        fi
-    done
-    
-    echo ""
-    log_info "Configuring $POS_COUNT POS register(s)..."
-    echo ""
-    
-    # Configure each POS
-    for ((i=0; i<POS_COUNT; i++)); do
-        echo -e "${CYAN}─── POS Position $i ───${NC}"
+        while true; do
+            read -p "Number of POS registers [2]: " POS_COUNT_INPUT
+            POS_COUNT_INPUT=${POS_COUNT_INPUT:-2}
+            
+            if [[ "$POS_COUNT_INPUT" =~ ^[2-4]$ ]]; then
+                POS_COUNT=$POS_COUNT_INPUT
+                break
+            else
+                echo -e "${RED}Please enter a number between 2 and 4${NC}"
+            fi
+        done
+        
+        echo ""
+        log_info "Configuring $POS_COUNT POS register(s) (legacy multi-POS)..."
+        echo ""
+        
+        # Configure each POS
+        for ((i=0; i<POS_COUNT; i++)); do
+            echo -e "${CYAN}─── POS Position $i ───${NC}"
+            
+            # Default serial port
+            local default_port="/dev/ttyUSB$i"
+            if [[ $i -lt ${#SERIAL_PORTS[@]} ]]; then
+                default_port="${SERIAL_PORTS[$i]}"
+            fi
+            
+            # Default camera name (e.g., POS1, POS2, etc.)
+            local default_camera=""
+            case $i in
+                0) default_camera="POS1" ;;
+                1) default_camera="POS2" ;;
+                2) default_camera="POS3" ;;
+                3) default_camera="POS4" ;;
+            esac
+            
+            # Prompt for serial port
+            read -p "  Serial port [$default_port]: " PORT_INPUT
+            PORT_INPUT=${PORT_INPUT:-$default_port}
+            POS_SERIAL_PORTS+=("$PORT_INPUT")
+            
+            # Prompt for camera name
+            echo "  Camera name in Frigate (e.g., POS1, front_register, left_counter)"
+            read -p "  Camera name [$default_camera]: " CAMERA_INPUT
+            CAMERA_INPUT=${CAMERA_INPUT:-$default_camera}
+            POS_CAMERA_NAMES+=("$CAMERA_INPUT")
+            
+            echo ""
+        done
+    else
+        # Single-POS setup (default for new devices)
+        POS_COUNT=1
+        
+        echo ""
+        log_info "Configuring single-POS device..."
+        echo ""
         
         # Default serial port
-        local default_port="/dev/ttyUSB$i"
-        if [[ $i -lt ${#SERIAL_PORTS[@]} ]]; then
-            default_port="${SERIAL_PORTS[$i]}"
+        local default_port="/dev/ttyUSB0"
+        if [[ ${#SERIAL_PORTS[@]} -gt 0 ]]; then
+            default_port="${SERIAL_PORTS[0]}"
         fi
         
-        # Default camera name (e.g., POS1, POS2, etc.)
-        local default_camera=""
-        case $i in
-            0) default_camera="POS1" ;;
-            1) default_camera="POS2" ;;
-            2) default_camera="POS3" ;;
-            3) default_camera="POS4" ;;
-        esac
-        
-        # Prompt for serial port
-        read -p "  Serial port [$default_port]: " PORT_INPUT
+        read -p "Serial port [$default_port]: " PORT_INPUT
         PORT_INPUT=${PORT_INPUT:-$default_port}
         POS_SERIAL_PORTS+=("$PORT_INPUT")
         
-        # Prompt for camera name
-        echo "  Camera name in Frigate (e.g., POS1, front_register, left_counter)"
-        read -p "  Camera name [$default_camera]: " CAMERA_INPUT
-        CAMERA_INPUT=${CAMERA_INPUT:-$default_camera}
+        read -p "Camera name in Frigate [POS1]: " CAMERA_INPUT
+        CAMERA_INPUT=${CAMERA_INPUT:-POS1}
         POS_CAMERA_NAMES+=("$CAMERA_INPUT")
         
         echo ""
-    done
+        echo -e "${GREEN}✓ Single-POS configured: $PORT_INPUT → $CAMERA_INPUT${NC}"
+        echo ""
+    fi
     
-    # Summary
-    echo -e "${GREEN}POS Configuration Summary:${NC}"
-    echo "┌──────────┬─────────────────┬────────────────────┐"
-    echo "│ Position │ Serial Port     │ Camera Name        │"
-    echo "├──────────┼─────────────────┼────────────────────┤"
-    for ((i=0; i<POS_COUNT; i++)); do
-        printf "│ %-8s │ %-15s │ %-18s │\n" "$i" "${POS_SERIAL_PORTS[$i]}" "${POS_CAMERA_NAMES[$i]}"
-    done
-    echo "└──────────┴─────────────────┴────────────────────┘"
-    echo ""
+    # Summary (for multi-POS or confirmation)
+    if [[ $POS_COUNT -gt 1 ]]; then
+        echo -e "${GREEN}POS Configuration Summary:${NC}"
+        echo "┌──────────┬─────────────────┬────────────────────┐"
+        echo "│ Position │ Serial Port     │ Camera Name        │"
+        echo "├──────────┼─────────────────┼────────────────────┤"
+        for ((i=0; i<POS_COUNT; i++)); do
+            printf "│ %-8s │ %-15s │ %-18s │\n" "$i" "${POS_SERIAL_PORTS[$i]}" "${POS_CAMERA_NAMES[$i]}"
+        done
+        echo "└──────────┴─────────────────┴────────────────────┘"
+        echo ""
+    fi
     
     read -p "Is this correct? [Y/n]: " CONFIRM
     if [[ "$CONFIRM" =~ ^[Nn] ]]; then
