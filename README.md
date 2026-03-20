@@ -41,7 +41,7 @@ sudo bash install.sh
 **Alternative - One-Liner (if git is not available):**
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/FFTY50/micromanager-installer/main/install.sh | sudo bash
+sudo bash <(curl -fsSL https://raw.githubusercontent.com/FFTY50/micromanager-installer/main/install.sh)
 ```
 
 The script will:
@@ -84,7 +84,7 @@ sudo bash install.sh --test
 
 Alternative:
 ```bash
-curl -fsSL https://raw.githubusercontent.com/FFTY50/micromanager-installer/main/install.sh | sudo bash -s -- --test
+sudo bash <(curl -fsSL https://raw.githubusercontent.com/FFTY50/micromanager-installer/main/install.sh) --test
 ```
 
 - Good for:
@@ -110,7 +110,7 @@ sudo bash install.sh --test-full
 
 Alternative:
 ```bash
-curl -fsSL https://raw.githubusercontent.com/FFTY50/micromanager-installer/main/install.sh | sudo bash -s -- --test-full
+sudo bash <(curl -fsSL https://raw.githubusercontent.com/FFTY50/micromanager-installer/main/install.sh) --test-full
 ```
 
 This gives you a full end‑to‑end lab setup:
