@@ -303,16 +303,40 @@ generate_env_file() {
     local ENV_FILE="$INSTALL_DIR/.env"
     local EXISTING_ID=""
     
-    # Try to preserve existing MICROMANAGER_ID if file exists
+    # Try to preserve existing credentials if file exists
     if [[ -f "$ENV_FILE" ]]; then
         EXISTING_ID=$(grep "^MICROMANAGER_ID=" "$ENV_FILE" | cut -d'=' -f2)
+        EXISTING_SECRET=$(grep "^DEVICE_SECRET=" "$ENV_FILE" | cut -d'=' -f2)
+        EXISTING_TOKEN=$(grep "^DEVICE_TOKEN=" "$ENV_FILE" | cut -d'=' -f2)
         if [[ -n "$EXISTING_ID" ]]; then
             log_info "Preserving existing MICROMANAGER_ID: $EXISTING_ID"
         fi
+        if [[ -n "$EXISTING_SECRET" ]]; then
+            log_info "Preserving existing DEVICE_SECRET"
+        fi
+        if [[ -n "$EXISTING_TOKEN" ]]; then
+            log_info "Preserving existing DEVICE_TOKEN: $EXISTING_TOKEN"
+        fi
     fi
-    
+
     # Use existing ID or generate a fresh one
     local FINAL_ID=${EXISTING_ID:-$(uuidgen 2>/dev/null || cat /proc/sys/kernel/random/uuid)}
+
+    # Generate DEVICE_SECRET (64 hex chars = 32 random bytes) if not already present
+    local FINAL_SECRET=${EXISTING_SECRET:-$(od -A n -t x1 -N 32 /dev/urandom | tr -d ' \n')}
+
+    # Generate DEVICE_TOKEN (6 chars, no 0/O/1/I to avoid read errors) if not already present
+    local TOKEN_CHARS="ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+    local FINAL_TOKEN="${EXISTING_TOKEN}"
+    if [[ -z "$FINAL_TOKEN" ]]; then
+        FINAL_TOKEN=""
+        local rand_bytes
+        rand_bytes=$(od -A n -t u1 -N 6 /dev/urandom | tr -d ' \n')
+        for byte in $rand_bytes; do
+            local idx=$((byte % ${#TOKEN_CHARS}))
+            FINAL_TOKEN="${FINAL_TOKEN}${TOKEN_CHARS:$idx:1}"
+        done
+    fi
     
     if [[ $MODE == "test" ]]; then
         # Minimal test config
@@ -324,6 +348,10 @@ generate_env_file() {
 DEVICE_NAME=$(hostname)
 MICROMANAGER_ID=$FINAL_ID
 
+# Device credentials (generated once — do not regenerate without re-claiming in web UI)
+DEVICE_SECRET=$FINAL_SECRET
+DEVICE_TOKEN=$FINAL_TOKEN
+
 # Serial (using emulator pipe)
 SERIAL_PORTS=/tmp/serial_txn
 SERIAL_BAUD=9600
@@ -331,6 +359,10 @@ SERIAL_BAUD=9600
 # Webhooks (disabled for testing)
 # N8N_LINES_URL=
 # N8N_TXNS_URL=
+
+# Convex Backend (add CONVEX_SITE_URL to enable)
+# CONVEX_ENABLED=true
+# CONVEX_SITE_URL=
 
 # Frigate (disabled in test mode)
 FRIGATE_ENABLED=false
@@ -349,6 +381,10 @@ EOF
 DEVICE_NAME=$(hostname)
 MICROMANAGER_ID=$FINAL_ID
 
+# Device credentials (generated once — do not regenerate without re-claiming in web UI)
+DEVICE_SECRET=$FINAL_SECRET
+DEVICE_TOKEN=$FINAL_TOKEN
+
 # Serial (using emulator pipe)
 SERIAL_PORTS=/tmp/serial_txn
 SERIAL_BAUD=9600
@@ -356,6 +392,10 @@ SERIAL_BAUD=9600
 # Webhooks (disabled for testing)
 # N8N_LINES_URL=
 # N8N_TXNS_URL=
+
+# Convex Backend (add CONVEX_SITE_URL to enable)
+# CONVEX_ENABLED=true
+# CONVEX_SITE_URL=
 
 # Frigate (enabled, internal network)
 FRIGATE_ENABLED=true
@@ -384,12 +424,20 @@ EOF
 DEVICE_NAME=$(hostname)
 MICROMANAGER_ID=$FINAL_ID
 
+# Device credentials (generated once — do not regenerate without re-claiming in web UI)
+DEVICE_SECRET=$FINAL_SECRET
+DEVICE_TOKEN=$FINAL_TOKEN
+
 # Serial baud rate (applies to all ports)
 SERIAL_BAUD=9600
 
-# n8n Webhook URLs
-N8N_LINES_URL=
-N8N_TXNS_URL=
+# n8n Webhook URLs (deprecated)
+# N8N_LINES_URL=
+# N8N_TXNS_URL=
+
+# Convex Backend — uncomment and add your site URL to enable
+# CONVEX_ENABLED=true
+# CONVEX_SITE_URL=
 
 # Frigate Integration
 FRIGATE_ENABLED=true
@@ -1008,8 +1056,37 @@ run_wizard() {
         log_warn "No Cloudflare token provided - tunnel will not connect"
     fi
     
+    # Convex backend URL
+    echo ""
+    echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${CYAN}                   Convex Backend Setup                            ${NC}"
+    echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
+    echo "Convex is the cloud backend for transaction data and device management."
+    echo "The site URL is the same for all devices (e.g. https://your-app.convex.site)"
+    echo ""
+    read -p "Convex site URL (leave blank to configure later): " CONVEX_URL
+    if [[ -n "$CONVEX_URL" ]]; then
+        sed -i "s|^# CONVEX_ENABLED=.*|CONVEX_ENABLED=true|" "$ENV_FILE"
+        sed -i "s|^# CONVEX_SITE_URL=.*|CONVEX_SITE_URL=$CONVEX_URL|" "$ENV_FILE"
+        log_success "Convex enabled: $CONVEX_URL"
+    else
+        log_warn "Convex not configured — edit $ENV_FILE to add CONVEX_SITE_URL when ready"
+    fi
+
     echo ""
     log_success "Configuration complete!"
+    echo ""
+    echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${GREEN}  Device Credentials — SAVE THESE${NC}"
+    echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
+    echo -e "  Device ID:    ${CYAN}$(grep "^MICROMANAGER_ID=" "$ENV_FILE" | cut -d'=' -f2)${NC}"
+    echo -e "  Claim Token:  ${GREEN}$(grep "^DEVICE_TOKEN=" "$ENV_FILE" | cut -d'=' -f2)${NC}  ← enter this in the web UI to claim this device"
+    echo ""
+    echo -e "  Full credentials stored in: ${CYAN}$ENV_FILE${NC}"
+    echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
 }
 
 # ============================================================================
