@@ -301,13 +301,15 @@ generate_env_file() {
     log_info "Generating environment configuration..."
     
     local ENV_FILE="$INSTALL_DIR/.env"
-    local EXISTING_ID=""
-    
+    # Pre-declare all existing-credential vars as empty so set -u doesn't
+    # fire when there is no existing .env file
+    local EXISTING_ID="" EXISTING_SECRET="" EXISTING_TOKEN=""
+
     # Try to preserve existing credentials if file exists
     if [[ -f "$ENV_FILE" ]]; then
-        EXISTING_ID=$(grep "^MICROMANAGER_ID=" "$ENV_FILE" | cut -d'=' -f2)
-        EXISTING_SECRET=$(grep "^DEVICE_SECRET=" "$ENV_FILE" | cut -d'=' -f2)
-        EXISTING_TOKEN=$(grep "^DEVICE_TOKEN=" "$ENV_FILE" | cut -d'=' -f2)
+        EXISTING_ID=$(grep "^MICROMANAGER_ID=" "$ENV_FILE" | cut -d'=' -f2 || true)
+        EXISTING_SECRET=$(grep "^DEVICE_SECRET=" "$ENV_FILE" | cut -d'=' -f2 || true)
+        EXISTING_TOKEN=$(grep "^DEVICE_TOKEN=" "$ENV_FILE" | cut -d'=' -f2 || true)
         if [[ -n "$EXISTING_ID" ]]; then
             log_info "Preserving existing MICROMANAGER_ID: $EXISTING_ID"
         fi
@@ -326,14 +328,16 @@ generate_env_file() {
     local FINAL_SECRET=${EXISTING_SECRET:-$(od -A n -t x1 -N 32 /dev/urandom | tr -d ' \n')}
 
     # Generate DEVICE_TOKEN (6 chars, no 0/O/1/I to avoid read errors) if not already present
+    # NOTE: do NOT strip spaces from od output — word splitting on the raw output
+    # gives individual byte values for the for loop to iterate over correctly
     local TOKEN_CHARS="ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
-    local FINAL_TOKEN="${EXISTING_TOKEN}"
+    local FINAL_TOKEN="$EXISTING_TOKEN"
     if [[ -z "$FINAL_TOKEN" ]]; then
         FINAL_TOKEN=""
         local rand_bytes
-        rand_bytes=$(od -A n -t u1 -N 6 /dev/urandom | tr -d ' \n')
+        rand_bytes=$(od -v -A n -t u1 -N 6 /dev/urandom)
         for byte in $rand_bytes; do
-            local idx=$((byte % ${#TOKEN_CHARS}))
+            local idx=$((byte % 32))
             FINAL_TOKEN="${FINAL_TOKEN}${TOKEN_CHARS:$idx:1}"
         done
     fi
