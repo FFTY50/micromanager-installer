@@ -531,7 +531,7 @@ services:
         max-file: "3"
 
   frigate:
-    image: ghcr.io/blakeblackshear/frigate:0.16.2
+    image: ghcr.io/blakeblackshear/frigate:0.17.0
     container_name: frigate
     privileged: true
     restart: unless-stopped
@@ -604,7 +604,7 @@ services:
         max-file: "3"
 
   frigate:
-    image: ghcr.io/blakeblackshear/frigate:0.16.2
+    image: ghcr.io/blakeblackshear/frigate:0.17.0
     container_name: frigate
     privileged: true
     restart: unless-stopped
@@ -946,7 +946,7 @@ ${DEVICES_YAML}    volumes:
         max-file: "3"
 
   frigate:
-    image: ghcr.io/blakeblackshear/frigate:0.16.2
+    image: ghcr.io/blakeblackshear/frigate:0.17.0
     container_name: frigate
     privileged: true
     restart: unless-stopped
