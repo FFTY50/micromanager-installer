@@ -131,6 +131,21 @@ detect_system() {
         log_info "NVMe storage detected"
     fi
     
+    # Detect MAC addresses (needed by the app running inside Docker)
+    HOST_ETH0_MAC=""
+    HOST_WLAN0_MAC=""
+    if [[ -f /sys/class/net/eth0/address ]]; then
+        HOST_ETH0_MAC=$(cat /sys/class/net/eth0/address)
+        log_success "Detected eth0 MAC: $HOST_ETH0_MAC"
+    fi
+    if [[ -f /sys/class/net/wlan0/address ]]; then
+        HOST_WLAN0_MAC=$(cat /sys/class/net/wlan0/address)
+        log_success "Detected wlan0 MAC: $HOST_WLAN0_MAC"
+    fi
+    if [[ -z "$HOST_ETH0_MAC" && -z "$HOST_WLAN0_MAC" ]]; then
+        log_warn "No MAC address detected — device will not be claimable until HOST_ETH0_MAC is set in .env"
+    fi
+
     # Check for USB serial ports
     SERIAL_PORTS=()
     for port in /dev/ttyUSB* /dev/ttyACM*; do
@@ -138,7 +153,7 @@ detect_system() {
             SERIAL_PORTS+=("$port")
         fi
     done
-    
+
     if [[ ${#SERIAL_PORTS[@]} -gt 0 ]]; then
         log_info "Serial ports found: ${SERIAL_PORTS[*]}"
     else
@@ -351,6 +366,8 @@ generate_env_file() {
 # Device
 DEVICE_NAME=$(hostname)
 MICROMANAGER_ID=$FINAL_ID
+HOST_ETH0_MAC=$HOST_ETH0_MAC
+HOST_WLAN0_MAC=$HOST_WLAN0_MAC
 
 # Device credentials (generated once — do not regenerate without re-claiming in web UI)
 DEVICE_SECRET=$FINAL_SECRET
@@ -384,6 +401,8 @@ EOF
 # Device
 DEVICE_NAME=$(hostname)
 MICROMANAGER_ID=$FINAL_ID
+HOST_ETH0_MAC=$HOST_ETH0_MAC
+HOST_WLAN0_MAC=$HOST_WLAN0_MAC
 
 # Device credentials (generated once — do not regenerate without re-claiming in web UI)
 DEVICE_SECRET=$FINAL_SECRET
@@ -427,6 +446,8 @@ EOF
 # Device
 DEVICE_NAME=$(hostname)
 MICROMANAGER_ID=$FINAL_ID
+HOST_ETH0_MAC=$HOST_ETH0_MAC
+HOST_WLAN0_MAC=$HOST_WLAN0_MAC
 
 # Device credentials (generated once — do not regenerate without re-claiming in web UI)
 DEVICE_SECRET=$FINAL_SECRET
