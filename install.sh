@@ -1021,22 +1021,6 @@ run_wizard() {
     # Generate Docker Compose with proper serial port mappings
     generate_compose_with_pos
     
-    # n8n Webhook URLs
-    echo ""
-    echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    echo -e "${CYAN}                    Webhook Configuration                          ${NC}"
-    echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    echo ""
-    echo "n8n Webhook URLs (leave blank to skip):"
-    read -p "Lines webhook URL: " N8N_LINES
-    read -p "Transactions webhook URL: " N8N_TXNS
-    if [[ -n "$N8N_LINES" ]]; then
-        sed -i "s|^N8N_LINES_URL=.*|N8N_LINES_URL=$N8N_LINES|" "$ENV_FILE"
-    fi
-    if [[ -n "$N8N_TXNS" ]]; then
-        sed -i "s|^N8N_TXNS_URL=.*|N8N_TXNS_URL=$N8N_TXNS|" "$ENV_FILE"
-    fi
-    
     # Frigate public URL
     echo ""
     read -p "Frigate public URL (for video links in UI): " FRIGATE_URL
